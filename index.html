@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f766e">
+<title>領収書メモ｜確定申告の準備</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#ffffff; --ink:#1f2933; --sub:#677483;
+    --line:#e3e7ec; --accent:#0f766e; --accent-d:#0b5a54;
+    --danger:#d64545; --warn:#b7791f; --ok:#2f855a;
+    --shadow:0 1px 3px rgba(16,24,40,.08),0 1px 2px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+    background:var(--bg); color:var(--ink);
+    padding-bottom:env(safe-area-inset-bottom);
+    -webkit-text-size-adjust:100%;
+  }
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--accent); color:#fff;
+    padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;
+    display:flex; align-items:baseline; gap:8px;
+  }
+  header h1{font-size:17px; margin:0; font-weight:700; letter-spacing:.02em}
+  header .yr{margin-left:auto; font-size:13px; opacity:.9}
+  main{max-width:680px; margin:0 auto; padding:14px 14px 96px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:14px; margin-bottom:12px}
+  label{display:block; font-size:12px; color:var(--sub); margin:0 0 5px 2px; font-weight:600}
+  input,select,textarea{
+    width:100%; font-size:16px; color:var(--ink); background:#fff;
+    border:1px solid var(--line); border-radius:10px; padding:11px 12px; font-family:inherit;
+  }
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--accent)}
+  textarea{resize:vertical; min-height:46px}
+  .row{display:flex; gap:10px}
+  .row>div{flex:1; min-width:0}
+  .field{margin-bottom:11px}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    border:none; border-radius:11px; padding:13px 16px; font-size:15px; font-weight:700;
+    background:var(--accent); color:#fff; cursor:pointer; font-family:inherit; width:100%;
+  }
+  .btn:active{background:var(--accent-d)}
+  .btn.ghost{background:#fff; color:var(--accent); border:1.5px solid var(--accent)}
+  .btn.sub{background:#eef1f4; color:var(--ink)}
+  .btn.sm{width:auto; padding:8px 12px; font-size:13px; border-radius:9px}
+  .btn.danger{background:#fff; color:var(--danger); border:1.5px solid var(--danger)}
+  /* photo picker */
+  .photobox{
+    position:relative; border:1.5px dashed #c6ccd4; border-radius:12px;
+    background:#fafbfc; min-height:128px; display:flex; align-items:center; justify-content:center;
+    text-align:center; color:var(--sub); overflow:hidden;
+  }
+  .photobox img{width:100%; height:100%; max-height:260px; object-fit:contain; display:block}
+  .photobox .hint{padding:18px; font-size:13px; line-height:1.6}
+  .photobox .hint b{display:block; color:var(--ink); font-size:15px; margin-bottom:3px}
+  .photobox input[type=file]{position:absolute; inset:0; opacity:0; width:100%; height:100%}
+  .clearimg{position:absolute; top:8px; right:8px; background:rgba(0,0,0,.6); color:#fff; border:none; border-radius:20px; width:30px; height:30px; font-size:16px; z-index:3}
+  /* tabs */
+  nav{
+    position:fixed; bottom:0; left:0; right:0; z-index:20;
+    background:#fff; border-top:1px solid var(--line);
+    display:flex; padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav button{flex:1; background:none; border:none; padding:9px 0 7px; color:var(--sub); font-size:11px; font-family:inherit; cursor:pointer}
+  nav button .ic{display:block; font-size:20px; line-height:1; margin-bottom:3px}
+  nav button.on{color:var(--accent); font-weight:700}
+  .tab{display:none}
+  .tab.on{display:block}
+  /* list */
+  .filters{display:flex; gap:8px; margin-bottom:10px}
+  .filters select{font-size:14px; padding:9px 10px}
+  .item{display:flex; gap:11px; align-items:center; padding:11px 0; border-bottom:1px solid var(--line)}
+  .item:last-child{border-bottom:none}
+  .thumb{width:50px; height:50px; border-radius:9px; background:#eef1f4; flex:0 0 50px; object-fit:cover; display:flex; align-items:center; justify-content:center; color:#aeb6c0; font-size:20px}
+  .item .meta{flex:1; min-width:0}
+  .item .vn{font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .item .dt{font-size:12px; color:var(--sub); margin-top:2px}
+  .item .cat{display:inline-block; font-size:11px; color:var(--accent); background:#e6f3f1; border-radius:6px; padding:1px 7px; margin-top:4px}
+  .item .amt{font-size:16px; font-weight:700; white-space:nowrap; margin-left:6px}
+  .empty{text-align:center; color:var(--sub); padding:40px 16px; font-size:14px; line-height:1.7}
+  /* summary */
+  .total{display:flex; align-items:baseline; justify-content:space-between; padding:6px 2px 12px}
+  .total .lbl{font-size:13px; color:var(--sub)}
+  .total .v{font-size:26px; font-weight:800; color:var(--accent)}
+  .sumrow{display:flex; align-items:center; gap:10px; padding:10px 2px; border-bottom:1px solid var(--line); font-size:14px}
+  .sumrow:last-child{border-bottom:none}
+  .sumrow .nm{flex:1}
+  .sumrow .ct{color:var(--sub); font-size:12px}
+  .sumrow .vv{font-weight:700}
+  .bar{height:6px; border-radius:4px; background:var(--accent); opacity:.85; margin-top:5px}
+  .sectitle{font-size:13px; font-weight:700; color:var(--sub); margin:4px 2px 8px; letter-spacing:.03em}
+  /* modal */
+  .modal{position:fixed; inset:0; z-index:40; background:rgba(15,23,28,.55); display:none; align-items:flex-end; justify-content:center}
+  .modal.on{display:flex}
+  .sheet{background:#fff; width:100%; max-width:680px; border-radius:18px 18px 0 0; padding:18px 16px calc(18px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto}
+  .sheet h3{margin:2px 0 14px; font-size:16px}
+  .toast{position:fixed; left:50%; bottom:84px; transform:translateX(-50%); background:#1f2933; color:#fff; padding:10px 18px; border-radius:22px; font-size:13px; z-index:60; opacity:0; transition:opacity .25s; pointer-events:none; white-space:nowrap}
+  .toast.on{opacity:1}
+  .note{font-size:12px; color:var(--sub); line-height:1.7; margin-top:8px}
+  .split{display:flex; gap:10px}
+  .split .btn{flex:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>領収書メモ</h1>
+  <span class="yr" id="yrLabel"></span>
+</header>
+
+<main>
+  <!-- ========== 入力タブ ========== -->
+  <section class="tab on" id="tab-add">
+    <div class="card">
+      <div class="field">
+        <label>領収書の写真（任意）</label>
+        <div class="photobox" id="photobox">
+          <div class="hint" id="photoHint">
+            <b>📷 撮影・写真・PDFを選ぶ</b>
+            レシートや領収書を撮影、写真から選択、またはPDFを取り込みます
+          </div>
+          <img id="photoPrev" style="display:none">
+          <div id="pdfPrev" style="display:none; padding:24px 16px; text-align:center">
+            <div style="font-size:42px">📄</div>
+            <div id="pdfName" style="font-size:13px; color:var(--ink); margin-top:6px; word-break:break-all">PDF</div>
+          </div>
+          <button type="button" class="clearimg" id="photoClear" style="display:none">✕</button>
+          <input type="file" id="photoInput" accept="image/*,application/pdf">
+        </div>
+        <div id="ocrStatus" class="note" style="display:none; color:var(--accent); font-weight:600"></div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>日付</label>
+          <input type="date" id="fDate">
+        </div>
+        <div class="field">
+          <label>金額（円）</label>
+          <input type="number" id="fAmount" inputmode="numeric" placeholder="例 1980">
+        </div>
+      </div>
+      <div class="field">
+        <label>支払先・店名</label>
+        <input type="text" id="fVendor" placeholder="例 ○○商店">
+      </div>
+      <div class="field">
+        <label>勘定科目</label>
+        <select id="fCategory"></select>
+      </div>
+      <div class="field">
+        <label>メモ（任意）</label>
+        <textarea id="fMemo" placeholder="用途など"></textarea>
+      </div>
+      <button class="btn" id="saveBtn">保存する</button>
+      <p class="note">保存先はこの端末の中だけです。サーバーには送られません。機種変更の前は「設定」からバックアップを取ってください。</p>
+    </div>
+  </section>
+
+  <!-- ========== 一覧タブ ========== -->
+  <section class="tab" id="tab-list">
+    <div class="filters">
+      <select id="filtMonth"></select>
+      <select id="filtCat"></select>
+    </div>
+    <div class="card" id="listCard">
+      <div class="empty" id="listEmpty">まだ登録がありません。<br>「入力」タブから追加してください。</div>
+      <div id="listBody"></div>
+    </div>
+  </section>
+
+  <!-- ========== 集計タブ ========== -->
+  <section class="tab" id="tab-sum">
+    <div class="filters">
+      <select id="sumYear"></select>
+    </div>
+    <div class="card">
+      <div class="total">
+        <span class="lbl">経費合計</span>
+        <span class="v" id="sumTotal">¥0</span>
+      </div>
+      <div class="sectitle">勘定科目ごとの集計</div>
+      <div id="sumByCat"><div class="empty">データがありません</div></div>
+    </div>
+    <div class="card">
+      <div class="sectitle">月ごとの集計</div>
+      <div id="sumByMonth"><div class="empty">データがありません</div></div>
+    </div>
+    <div class="card">
+      <div class="sectitle">AI読み取り設定</div>
+      <div class="field">
+        <label>Anthropic APIキー（この端末内にのみ保存）</label>
+        <input type="password" id="apiKey" placeholder="sk-ant-...">
+      </div>
+      <div class="field split">
+        <button class="btn" id="apiSave">保存</button>
+        <button class="btn sub" id="apiClear">削除</button>
+      </div>
+      <p class="note" id="apiStatus"></p>
+      <p class="note">写真・PDFを入れると、ClaudeのAIが日付・金額・店名・勘定科目を自動で読み取ります。キーは <b>console.anthropic.com</b> で取得できます。読み取り1件あたり概ね1円未満（モデル: claude-haiku-4-5）。キーは外部に送信されず、この端末のブラウザ内だけに保存されます。</p>
+    </div>
+
+    <div class="card">
+      <div class="sectitle">書き出し（確定申告の準備）</div>
+      <div class="field split">
+        <button class="btn" id="csvDetail">明細CSV</button>
+        <button class="btn ghost" id="csvSum">集計CSV</button>
+      </div>
+      <p class="note">CSVはExcel・Numbers・Googleスプレッドシートで開けます。明細CSVは1件ずつ、集計CSVは勘定科目ごとの合計です。確定申告書の経費欄や会計ソフトへの転記に使えます。</p>
+      <div style="height:8px"></div>
+      <div class="field split">
+        <button class="btn sub" id="backupBtn">バックアップ</button>
+        <button class="btn sub" id="restoreBtn">復元</button>
+      </div>
+      <input type="file" id="restoreInput" accept="application/json" style="display:none">
+      <p class="note">バックアップは全データ（写真含む）を1つのファイルに保存します。機種変更や万一の削除に備え、定期的に保存し、クラウドやPCに置いておくと安心です。</p>
+    </div>
+  </section>
+</main>
+
+<!-- 編集モーダル -->
+<div class="modal" id="editModal">
+  <div class="sheet">
+    <h3>記録を編集</h3>
+    <div class="field" id="editPhotoWrap" style="display:none">
+      <img id="editPhoto" style="width:100%; max-height:240px; object-fit:contain; border-radius:10px; background:#f4f5f7">
+    </div>
+    <div class="field" id="editPdfWrap" style="display:none">
+      <button type="button" class="btn ghost" id="editPdfOpen">📄 PDFを開く</button>
+    </div>
+    <div class="row">
+      <div class="field"><label>日付</label><input type="date" id="eDate"></div>
+      <div class="field"><label>金額（円）</label><input type="number" id="eAmount" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label>支払先・店名</label><input type="text" id="eVendor"></div>
+    <div class="field"><label>勘定科目</label><select id="eCategory"></select></div>
+    <div class="field"><label>メモ</label><textarea id="eMemo"></textarea></div>
+    <div class="split" style="margin-bottom:10px">
+      <button class="btn" id="editSave">保存</button>
+      <button class="btn sub" id="editCancel">閉じる</button>
+    </div>
+    <button class="btn danger" id="editDelete">この記録を削除</button>
+  </div>
+</div>
+
+<nav>
+  <button class="on" data-tab="add"><span class="ic">➕</span>入力</button>
+  <button data-tab="list"><span class="ic">📑</span>一覧</button>
+  <button data-tab="sum"><span class="ic">📊</span>集計</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- 勘定科目（確定申告でよく使う経費科目） ---------- */
+const CATEGORIES = [
+  "消耗品費","旅費交通費","通信費","接待交際費","会議費","広告宣伝費",
+  "新聞図書費","水道光熱費","地代家賃","外注工賃","支払手数料","荷造運賃",
+  "修繕費","租税公課","保険料","研修費","車両費","雑費"
+];
+
+/* ---------- IndexedDB ---------- */
+const DB_NAME="receipt-memo", STORE="receipts";
+let db=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,1);
+    r.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains(STORE)) d.createObjectStore(STORE,{keyPath:"id"});
+    };
+    r.onsuccess=e=>{db=e.target.result; res(db);};
+    r.onerror=e=>rej(e.target.error);
+  });
+}
+function tx(mode){return db.transaction(STORE,mode).objectStore(STORE);}
+function dbAll(){return new Promise((res,rej)=>{const q=tx("readonly").getAll(); q.onsuccess=()=>res(q.result||[]); q.onerror=()=>rej(q.error);});}
+function dbPut(o){return new Promise((res,rej)=>{const q=tx("readwrite").put(o); q.onsuccess=()=>res(); q.onerror=()=>rej(q.error);});}
+function dbDel(id){return new Promise((res,rej)=>{const q=tx("readwrite").delete(id); q.onsuccess=()=>res(); q.onerror=()=>rej(q.error);});}
+function dbClear(){return new Promise((res,rej)=>{const q=tx("readwrite").clear(); q.onsuccess=()=>res(); q.onerror=()=>rej(q.error);});}
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const yen=n=>"¥"+(Number(n)||0).toLocaleString("ja-JP");
+const todayStr=()=>{const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10);};
+let DATA=[];
+let pendingImage=null; // dataURL for new entry（画像）
+let pendingPDF=null;   // {data,name} for new entry（PDF）
+
+/* dataURL を Blob 化して別タブで開く（大きいPDFでも安定） */
+function openDataURL(dataURL){
+  try{
+    const [head,b64]=dataURL.split(","); const mime=(head.match(/:(.*?);/)||[])[1]||"application/pdf";
+    const bin=atob(b64); const arr=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([arr],{type:mime}));
+    window.open(url,"_blank"); setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(_){toast("ファイルを開けませんでした");}
+}
+function readDataURL(file){return new Promise(res=>{const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(file);});}
+
+/* ---------- AI読み取り（Claude 画像認識） ---------- */
+function getApiKey(){return localStorage.getItem("anthropic_api_key")||"";}
+const AI_PROMPT="この画像またはPDFは日本の領収書・レシート・請求書です。日付・合計金額(税込)・支払先(店名)・最も適切な勘定科目を読み取ってください。日付はYYYY-MM-DD形式。金額は整数の円(カンマや¥は付けない、税込の支払総額)。勘定科目は指定の選択肢から最も近いものを1つ。読み取れない項目はdateとvendorは空文字、amountは0にする。";
+const AI_SCHEMA={type:"object",properties:{date:{type:"string"},amount:{type:"integer"},vendor:{type:"string"},category:{type:"string",enum:CATEGORIES}},required:["date","amount","vendor","category"],additionalProperties:false};
+async function runAI(base64,mediaType,isPdf){
+  const key=getApiKey();
+  if(!key){ setStatus("AI読み取りには「集計」タブの【AI読み取り設定】でAPIキー登録が必要です。","var(--warn)"); return; }
+  setStatus("AIが読み取り中…");
+  const src=isPdf?{type:"document",source:{type:"base64",media_type:"application/pdf",data:base64}}
+                 :{type:"image",source:{type:"base64",media_type:mediaType,data:base64}};
+  try{
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+      headers:{"content-type":"application/json","x-api-key":key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:"claude-haiku-4-5",max_tokens:512,
+        messages:[{role:"user",content:[src,{type:"text",text:AI_PROMPT}]}],
+        output_config:{format:{type:"json_schema",schema:AI_SCHEMA}}})});
+    if(!res.ok){
+      let msg="読み取りに失敗しました（"+res.status+"）。";
+      if(res.status===401) msg="APIキーが正しくありません。設定を確認してください。";
+      else if(res.status===429) msg="API制限に達しました。少し待って再度お試しください。";
+      else if(res.status===400) msg="ファイル形式の問題で読み取れませんでした。";
+      setStatus("⚠ "+msg,"var(--warn)"); return;
+    }
+    const data=await res.json();
+    const text=(data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+    const j=JSON.parse(text);
+    let hit=[];
+    if(j.date){ $("#fDate").value=j.date; hit.push("日付"); }
+    if(j.amount>0){ $("#fAmount").value=j.amount; hit.push("金額"); }
+    if(j.vendor){ $("#fVendor").value=j.vendor; hit.push("店名"); }
+    if(j.category&&CATEGORIES.includes(j.category)){ $("#fCategory").value=j.category; hit.push("科目"); }
+    setStatus(hit.length?("AIが自動入力しました："+hit.join("・")+"（内容を確認してください）"):"読み取れませんでした。手入力してください。");
+  }catch(e){ setStatus("⚠ 通信に失敗しました。ネット接続を確認してください。","var(--warn)"); }
+}
+
+/* OCR用に画像を最適化（小さければ拡大・グレースケール・コントラスト強調） */
+function preprocessForOCR(srcDataURL){
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width,h=img.height,mx=Math.max(w,h),scale=1;
+      if(mx<1800) scale=1800/mx;          // 文字が小さい写真は拡大
+      if(mx*scale>2600) scale=2600/mx;     // 大きすぎは抑制
+      const c=document.createElement("canvas"); c.width=Math.round(w*scale); c.height=Math.round(h*scale);
+      const ctx=c.getContext("2d"); ctx.drawImage(img,0,0,c.width,c.height);
+      try{
+        const id=ctx.getImageData(0,0,c.width,c.height),d=id.data;
+        for(let i=0;i<d.length;i+=4){
+          let g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+          g=(g-128)*1.45+138;              // コントラスト強調
+          g=g<0?0:g>255?255:g; d[i]=d[i+1]=d[i+2]=g;
+        }
+        ctx.putImageData(id,0,0);
+      }catch(_){}
+      res(c.toDataURL("image/png"));
+    };
+    img.onerror=()=>res(srcDataURL);
+    img.src=srcDataURL;
+  });
+}
+
+/* ---------- OCR（端末内・無料） ---------- */
+const z2h=s=>String(s||"").replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+const pad=n=>String(n).padStart(2,"0");
+function parseAmount(text){
+  const lines=z2h(text).split(/\n/);
+  const GRP="[0-9]{1,3}(?:[,.][0-9]{3})+";  // 1,234 のような桁区切りつき＝価格らしい
+  const ANY="("+GRP+"|[0-9]{2,7})";
+  const toN=s=>parseInt(String(s).replace(/[,.\s]/g,""),10);
+  const ok=n=>n>0&&n<10000000;
+  const anyNums=s=>[...s.matchAll(new RegExp(ANY,"g"))].map(m=>toN(m[1])).filter(ok);
+  const grpNums=s=>[...s.matchAll(new RegExp(GRP,"g"))].map(m=>toN(m[0])).filter(ok);
+  const curNums=s=>[...s.matchAll(new RegExp("[¥￥\\\\]\\s*"+ANY+"|"+ANY+"\\s*円","g"))]
+    .map(m=>toN(m[1]||m[2])).filter(ok);
+  const want=/(合\s*計|お会計|お買上|ご?請求(金額)?|領収金額|総額|お支払)/;
+  const skip=/(小計|税抜|お預|預り|お釣|釣り|つり|ポイント|残高|枚数|点数|個数|内税|外税|消費税|電話|tel|fax|番号|登録|カード|会員|no\.?|〒|郵便|時|分)/i;
+  // 1) 「合計」などの行を最優先（小計・税抜は除外）
+  let c1=[]; lines.forEach(l=>{ if(want.test(l)&&!skip.test(l)) c1.push(...anyNums(l)); });
+  if(c1.length) return Math.max(...c1);
+  // 2) 通貨記号(¥ ￥ 円)つきの金額
+  let c2=[]; lines.forEach(l=>{ if(!skip.test(l)) c2.push(...curNums(l)); });
+  if(c2.length) return Math.max(...c2);
+  // 3) それ以外の数字（電話・番号・日付・年号は除外して最大値を採用）
+  let c3=[];
+  lines.forEach(l=>{
+    if(skip.test(l)) return;
+    l.split(/[^0-9,.]+/).forEach(tok=>{           // トークン単位で評価
+      if(!/^[0-9][0-9,.]*$/.test(tok)) return;
+      if((tok.match(/[.,]/g)||[]).length>1 && !/^\d{1,3}(,\d{3})+$/.test(tok)) return; // 不正な区切りは除外
+      const n=toN(tok);
+      if(!ok(n)) return;
+      if(n>=1900&&n<=2099) return;                 // 年号
+      c3.push(n);
+    });
+  });
+  return c3.length?Math.max(...c3):null;
+}
+function parseDate(text){
+  const t=z2h(text); let m;
+  m=t.match(/(20[0-9]{2})\s*[年\/\.\-]\s*(1[0-2]|0?[1-9])\s*[月\/\.\-]\s*(3[01]|[12][0-9]|0?[1-9])/);
+  if(m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  m=t.match(/令和\s*(\d{1,2})\s*年\s*(1[0-2]|0?[1-9])\s*月\s*(3[01]|[12][0-9]|0?[1-9])/);
+  if(m) return `${2018+parseInt(m[1],10)}-${pad(m[2])}-${pad(m[3])}`;
+  m=t.match(/\b(1[0-2]|0?[1-9])\s*[\/\.\-]\s*(3[01]|[12][0-9]|0?[1-9])\b/);
+  if(m) return `${todayStr().slice(0,4)}-${pad(m[1])}-${pad(m[2])}`;
+  return null;
+}
+function parseVendor(text){
+  const lines=text.split(/\n/).map(s=>s.trim()).filter(Boolean);
+  for(const l of lines){
+    if(/\d{3,}/.test(l)) continue;
+    if(/(領収書|レシート|received|receipt|tel|電話|fax|〒|住所|http|登録番号|no\.)/i.test(l)) continue;
+    const c=l.replace(/[\s\-=*]/g,"");
+    if(c.length<2) continue;
+    return l.slice(0,30);
+  }
+  return null;
+}
+const CAT_HINTS=[
+  [/(駅|jr|タクシー|バス|電車|交通|高速|駐車|パーキング|etc|航空|ana|jal|新幹線)/i,"旅費交通費"],
+  [/(ドコモ|au|softbank|ソフトバンク|通信|wi-?fi|インターネット|郵便|切手|レターパック)/i,"通信費"],
+  [/(コンビニ|セブン|ローソン|ファミリーマート|文具|事務|百均|ダイソー|amazon|アスクル|ヨドバシ|ビックカメラ)/i,"消耗品費"],
+  [/(居酒屋|レストラン|食堂|cafe|カフェ|珈琲|スターバックス|喫茶)/i,"会議費"],
+  [/(電気|ガス|水道|でんき|東京電力|関西電力)/i,"水道光熱費"],
+  [/(印刷|名刺|チラシ|広告|印刷所)/i,"広告宣伝費"],
+  [/(書店|本|ブック|新聞)/i,"新聞図書費"]
+];
+function guessCategory(text){ for(const[re,c]of CAT_HINTS) if(re.test(text)) return c; return null; }
+
+function setStatus(msg,color){const st=$("#ocrStatus"); st.style.display="block"; st.style.fontWeight="600"; st.style.color=color||"var(--accent)"; st.textContent=msg;}
+function fillFromText(text){
+  const d=parseDate(text), a=parseAmount(text), v=parseVendor(text), c=guessCategory(text);
+  let hit=[];
+  if(d){ $("#fDate").value=d; hit.push("日付"); }
+  if(a&&!$("#fAmount").value){ $("#fAmount").value=a; hit.push("金額"); }
+  if(v&&!$("#fVendor").value.trim()){ $("#fVendor").value=v; hit.push("店名"); }
+  if(c){ $("#fCategory").value=c; hit.push("科目"); }
+  setStatus(hit.length?("自動入力しました："+hit.join("・")+"（内容を確認・修正してください）"):"読み取れた項目がありませんでした。手入力してください。");
+}
+async function runOCR(dataURL){
+  if(typeof Tesseract==="undefined"){ setStatus("⚠ 読み取り機能を読み込めません（初回はネット接続が必要）。手入力してください。","var(--warn)"); return; }
+  setStatus("読み取り中… 0%");
+  try{
+    const {data:{text}}=await Tesseract.recognize(dataURL,"jpn+eng",{
+      logger:m=>{ if(m.status==="recognizing text") setStatus("読み取り中… "+Math.round(m.progress*100)+"%"); }
+    });
+    fillFromText(text);
+  }catch(_){ setStatus("読み取りに失敗しました。手入力してください。","var(--warn)"); }
+}
+async function runPdfRead(file){
+  if(typeof pdfjsLib==="undefined"){ setStatus("⚠ PDF読み取り機能を読み込めません（初回はネット接続が必要）。手入力してください。","var(--warn)"); return; }
+  setStatus("PDFを読み取り中…");
+  try{
+    const buf=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    const n=Math.min(pdf.numPages,3); let text="";
+    for(let p=1;p<=n;p++){
+      const pg=await pdf.getPage(p); const tc=await pg.getTextContent();
+      const byY={}; tc.items.forEach(it=>{ const y=Math.round(it.transform[5]); (byY[y]=byY[y]||[]).push(it.str); });
+      const ordered=Object.keys(byY).map(Number).sort((a,b)=>b-a).map(y=>byY[y].join(""));
+      text+=ordered.join("\n")+"\n";
+    }
+    if(text.replace(/\s/g,"").length<8){ // 文字が無い＝スキャンPDF → OCR
+      const pg=await pdf.getPage(1); const vp=pg.getViewport({scale:2});
+      const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height;
+      await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;
+      if(typeof Tesseract==="undefined"){ setStatus("⚠ 画像PDFの読み取りにはネット接続が必要です。手入力してください。","var(--warn)"); return; }
+      setStatus("PDF画像を読み取り中… 0%");
+      const {data:{text:t}}=await Tesseract.recognize(c.toDataURL("image/png"),"jpn+eng",{
+        logger:m=>{ if(m.status==="recognizing text") setStatus("PDF画像を読み取り中… "+Math.round(m.progress*100)+"%"); }});
+      text=t;
+    }
+    fillFromText(text);
+  }catch(_){ setStatus("PDFの読み取りに失敗しました。手入力してください。","var(--warn)"); }
+}
+
+function toast(msg){const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("on"),1900);}
+
+/* 画像を縮小してdataURL化（保存容量を節約） */
+function compress(file){
+  return new Promise(res=>{
+    const img=new Image(), rd=new FileReader();
+    rd.onload=()=>{img.onload=()=>{
+      const max=1280; let{width:w,height:h}=img;
+      if(w>max||h>max){const s=Math.min(max/w,max/h); w=Math.round(w*s); h=Math.round(h*s);}
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      res(c.toDataURL("image/jpeg",0.7));
+    }; img.src=rd.result;};
+    rd.readAsDataURL(file);
+  });
+}
+
+/* ---------- セレクト初期化 ---------- */
+function fillCatSelect(sel,withAll){
+  sel.innerHTML="";
+  if(withAll){const o=document.createElement("option"); o.value=""; o.textContent="すべての科目"; sel.appendChild(o);}
+  CATEGORIES.forEach(c=>{const o=document.createElement("option"); o.value=c; o.textContent=c; sel.appendChild(o);});
+}
+
+/* ---------- タブ ---------- */
+document.querySelectorAll("nav button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.remove("on"));
+    document.querySelectorAll(".tab").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    $("#tab-"+b.dataset.tab).classList.add("on");
+    if(b.dataset.tab==="list") renderList();
+    if(b.dataset.tab==="sum") renderSummary();
+  });
+});
+
+/* ---------- 写真入力 ---------- */
+$("#photoInput").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  pendingImage=null; pendingPDF=null;
+  $("#photoPrev").style.display="none"; $("#pdfPrev").style.display="none";
+  const st=$("#ocrStatus"); st.style.display="none"; st.textContent="";
+  if(f.type==="application/pdf"||/\.pdf$/i.test(f.name)){
+    pendingPDF={data:await readDataURL(f),name:f.name||"領収書.pdf"};
+    $("#pdfName").textContent=pendingPDF.name; $("#pdfPrev").style.display="block";
+    runAI(pendingPDF.data.split(",")[1],"application/pdf",true);
+  }else{
+    pendingImage=await compress(f);
+    $("#photoPrev").src=pendingImage; $("#photoPrev").style.display="block";
+    runAI(pendingImage.split(",")[1],"image/jpeg",false); // 圧縮済みJPEGをAIへ
+  }
+  $("#photoHint").style.display="none"; $("#photoClear").style.display="block";
+});
+$("#photoClear").addEventListener("click",e=>{
+  e.stopPropagation(); pendingImage=null; pendingPDF=null;
+  $("#photoInput").value="";
+  $("#photoPrev").style.display="none"; $("#pdfPrev").style.display="none";
+  $("#ocrStatus").style.display="none"; $("#ocrStatus").textContent="";
+  $("#photoHint").style.display="block"; $("#photoClear").style.display="none";
+});
+
+/* ---------- 保存 ---------- */
+$("#saveBtn").addEventListener("click",async()=>{
+  const date=$("#fDate").value;
+  const amount=parseInt($("#fAmount").value,10);
+  const vendor=$("#fVendor").value.trim();
+  const category=$("#fCategory").value;
+  if(!date){toast("日付を入れてください"); return;}
+  if(!amount||amount<=0){toast("金額を入れてください"); return;}
+  const rec={id:Date.now()+"-"+Math.random().toString(36).slice(2,7),
+    date,amount,vendor:vendor||"（無題）",category,memo:$("#fMemo").value.trim(),
+    image:pendingImage,pdf:pendingPDF?pendingPDF.data:null,pdfName:pendingPDF?pendingPDF.name:null,createdAt:Date.now()};
+  await dbPut(rec); DATA.push(rec);
+  // reset
+  $("#fAmount").value=""; $("#fVendor").value=""; $("#fMemo").value="";
+  $("#photoClear").click();
+  rebuildFilters();
+  toast("保存しました ✓");
+});
+
+/* ---------- 一覧 ---------- */
+function rebuildFilters(){
+  const months=[...new Set(DATA.map(r=>r.date.slice(0,7)))].sort().reverse();
+  const fm=$("#filtMonth"); const cur=fm.value;
+  fm.innerHTML='<option value="">すべての月</option>'+months.map(m=>`<option value="${m}">${m.replace("-","年")}月</option>`).join("");
+  if([...fm.options].some(o=>o.value===cur)) fm.value=cur;
+  const years=[...new Set(DATA.map(r=>r.date.slice(0,4)))].sort().reverse();
+  const sy=$("#sumYear"); const cy=sy.value;
+  sy.innerHTML=years.length?years.map(y=>`<option value="${y}">${y}年</option>`).join(""):`<option value="${todayStr().slice(0,4)}">${todayStr().slice(0,4)}年</option>`;
+  if([...sy.options].some(o=>o.value===cy)) sy.value=cy;
+}
+function renderList(){
+  const m=$("#filtMonth").value, c=$("#filtCat").value;
+  let rows=DATA.filter(r=>(!m||r.date.slice(0,7)===m)&&(!c||r.category===c))
+              .sort((a,b)=>b.date.localeCompare(a.date)||b.createdAt-a.createdAt);
+  const body=$("#listBody"), empty=$("#listEmpty");
+  if(!rows.length){empty.style.display="block"; body.innerHTML=""; return;}
+  empty.style.display="none";
+  body.innerHTML=rows.map(r=>`
+    <div class="item" data-id="${r.id}">
+      ${r.image?`<img class="thumb" src="${r.image}">`:r.pdf?`<div class="thumb">📄</div>`:`<div class="thumb">🧾</div>`}
+      <div class="meta">
+        <div class="vn">${esc(r.vendor)}</div>
+        <div class="dt">${r.date}</div>
+        <div class="cat">${esc(r.category)}</div>
+      </div>
+      <div class="amt">${yen(r.amount)}</div>
+    </div>`).join("");
+  body.querySelectorAll(".item").forEach(el=>el.addEventListener("click",()=>openEdit(el.dataset.id)));
+}
+$("#filtMonth").addEventListener("change",renderList);
+$("#filtCat").addEventListener("change",renderList);
+
+/* ---------- 編集モーダル ---------- */
+let editId=null;
+function openEdit(id){
+  const r=DATA.find(x=>x.id===id); if(!r) return;
+  editId=id;
+  $("#eDate").value=r.date; $("#eAmount").value=r.amount;
+  $("#eVendor").value=r.vendor==="（無題）"?"":r.vendor;
+  $("#eCategory").value=r.category; $("#eMemo").value=r.memo||"";
+  if(r.image){$("#editPhoto").src=r.image; $("#editPhotoWrap").style.display="block";}
+  else $("#editPhotoWrap").style.display="none";
+  $("#editPdfWrap").style.display=r.pdf?"block":"none";
+  $("#editModal").classList.add("on");
+}
+$("#editPdfOpen").addEventListener("click",()=>{const r=DATA.find(x=>x.id===editId); if(r&&r.pdf) openDataURL(r.pdf);});
+$("#editCancel").addEventListener("click",()=>$("#editModal").classList.remove("on"));
+$("#editModal").addEventListener("click",e=>{if(e.target.id==="editModal")$("#editModal").classList.remove("on");});
+$("#editSave").addEventListener("click",async()=>{
+  const r=DATA.find(x=>x.id===editId); if(!r) return;
+  const a=parseInt($("#eAmount").value,10);
+  if(!$("#eDate").value){toast("日付を入れてください"); return;}
+  if(!a||a<=0){toast("金額を入れてください"); return;}
+  r.date=$("#eDate").value; r.amount=a;
+  r.vendor=$("#eVendor").value.trim()||"（無題）";
+  r.category=$("#eCategory").value; r.memo=$("#eMemo").value.trim();
+  await dbPut(r); $("#editModal").classList.remove("on");
+  rebuildFilters(); renderList(); toast("更新しました ✓");
+});
+$("#editDelete").addEventListener("click",async()=>{
+  if(!confirm("この記録を削除しますか？")) return;
+  await dbDel(editId); DATA=DATA.filter(x=>x.id!==editId);
+  $("#editModal").classList.remove("on"); rebuildFilters(); renderList(); toast("削除しました");
+});
+
+/* ---------- 集計 ---------- */
+function renderSummary(){
+  const y=$("#sumYear").value||todayStr().slice(0,4);
+  const rows=DATA.filter(r=>r.date.slice(0,4)===y);
+  const total=rows.reduce((s,r)=>s+r.amount,0);
+  $("#sumTotal").textContent=yen(total);
+  // by category
+  const byCat={};
+  rows.forEach(r=>{byCat[r.category]=byCat[r.category]||{sum:0,n:0}; byCat[r.category].sum+=r.amount; byCat[r.category].n++;});
+  const cats=Object.entries(byCat).sort((a,b)=>b[1].sum-a[1].sum);
+  const maxC=cats.length?cats[0][1].sum:1;
+  $("#sumByCat").innerHTML=cats.length?cats.map(([k,v])=>`
+    <div class="sumrow">
+      <div class="nm">${esc(k)} <span class="ct">(${v.n}件)</span>
+        <div class="bar" style="width:${Math.max(6,v.sum/maxC*100)}%"></div>
+      </div>
+      <div class="vv">${yen(v.sum)}</div>
+    </div>`).join(""):`<div class="empty">この年のデータがありません</div>`;
+  // by month
+  const byM={};
+  rows.forEach(r=>{const m=r.date.slice(0,7); byM[m]=(byM[m]||0)+r.amount;});
+  const ms=Object.entries(byM).sort((a,b)=>a[0].localeCompare(b[0]));
+  $("#sumByMonth").innerHTML=ms.length?ms.map(([k,v])=>`
+    <div class="sumrow"><div class="nm">${k.slice(5)}月</div><div class="vv">${yen(v)}</div></div>`).join(""):`<div class="empty">この年のデータがありません</div>`;
+}
+$("#sumYear").addEventListener("change",renderSummary);
+
+/* ---------- CSV ---------- */
+function dl(name,text){
+  const blob=new Blob(["﻿"+text],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+const q=s=>'"'+String(s==null?"":s).replace(/"/g,'""')+'"';
+$("#csvDetail").addEventListener("click",()=>{
+  const y=$("#sumYear").value||todayStr().slice(0,4);
+  const rows=DATA.filter(r=>r.date.slice(0,4)===y).sort((a,b)=>a.date.localeCompare(b.date));
+  if(!rows.length){toast("この年のデータがありません"); return;}
+  let csv="日付,金額,支払先,勘定科目,メモ\n";
+  rows.forEach(r=>{csv+=[q(r.date),r.amount,q(r.vendor),q(r.category),q(r.memo)].join(",")+"\n";});
+  dl(`領収書明細_${y}.csv`,csv); toast("明細CSVを書き出しました");
+});
+$("#csvSum").addEventListener("click",()=>{
+  const y=$("#sumYear").value||todayStr().slice(0,4);
+  const rows=DATA.filter(r=>r.date.slice(0,4)===y);
+  if(!rows.length){toast("この年のデータがありません"); return;}
+  const byCat={}; rows.forEach(r=>{byCat[r.category]=byCat[r.category]||{sum:0,n:0}; byCat[r.category].sum+=r.amount; byCat[r.category].n++;});
+  let csv="勘定科目,件数,金額\n"; let tot=0,tn=0;
+  CATEGORIES.forEach(c=>{if(byCat[c]){csv+=[q(c),byCat[c].n,byCat[c].sum].join(",")+"\n"; tot+=byCat[c].sum; tn+=byCat[c].n;}});
+  csv+=[q("合計"),tn,tot].join(",")+"\n";
+  dl(`勘定科目別集計_${y}.csv`,csv); toast("集計CSVを書き出しました");
+});
+
+/* ---------- バックアップ / 復元 ---------- */
+$("#backupBtn").addEventListener("click",()=>{
+  if(!DATA.length){toast("データがありません"); return;}
+  const blob=new Blob([JSON.stringify({app:"receipt-memo",ver:1,exportedAt:new Date().toISOString(),data:DATA})],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`領収書バックアップ_${todayStr()}.json`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast("バックアップを保存しました");
+});
+$("#restoreBtn").addEventListener("click",()=>$("#restoreInput").click());
+$("#restoreInput").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=async()=>{
+    try{
+      const j=JSON.parse(rd.result);
+      if(!j.data||!Array.isArray(j.data)) throw 0;
+      if(!confirm(`${j.data.length}件を読み込みます。現在のデータに統合しますか？（同じIDは上書き）`)) return;
+      const map={}; DATA.forEach(r=>map[r.id]=r); j.data.forEach(r=>map[r.id]=r);
+      DATA=Object.values(map);
+      await dbClear(); for(const r of DATA) await dbPut(r);
+      rebuildFilters(); renderList(); renderSummary(); toast("復元しました ✓");
+    }catch(_){toast("ファイルを読み込めませんでした");}
+    $("#restoreInput").value="";
+  };
+  rd.readAsText(f);
+});
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+/* ---------- 起動 ---------- */
+function refreshApiStatus(){
+  const has=!!getApiKey();
+  $("#apiStatus").textContent=has?"✓ APIキー設定済み。写真・PDFを入れると自動で読み取ります。":"未設定です。APIキーを登録すると自動読み取りが使えます。";
+  $("#apiStatus").style.color=has?"var(--ok)":"var(--warn)";
+}
+$("#apiSave").addEventListener("click",()=>{
+  const k=$("#apiKey").value.trim();
+  if(!k){ toast("APIキーを入力してください"); return; }
+  localStorage.setItem("anthropic_api_key",k); refreshApiStatus(); toast("APIキーを保存しました ✓");
+});
+$("#apiClear").addEventListener("click",()=>{
+  localStorage.removeItem("anthropic_api_key"); $("#apiKey").value=""; refreshApiStatus(); toast("APIキーを削除しました");
+});
+
+(async function init(){
+  $("#apiKey").value=getApiKey(); refreshApiStatus();
+  $("#fDate").value=todayStr();
+  $("#yrLabel").textContent=todayStr().slice(0,4)+"年度";
+  fillCatSelect($("#fCategory"),false);
+  fillCatSelect($("#eCategory"),false);
+  fillCatSelect($("#filtCat"),true);
+  await openDB();
+  DATA=await dbAll();
+  rebuildFilters();
+})();
+})();
+</script>
+</body>
+</html>
