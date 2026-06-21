@@ -30,7 +30,7 @@
   }
   header h1{font-size:17px; margin:0; font-weight:700; letter-spacing:.02em}
   header .yr{margin-left:auto; font-size:13px; opacity:.9}
-  main{max-width:680px; margin:0 auto; padding:14px 14px 96px}
+  main{max-width:680px; margin:0 auto; padding:14px 14px calc(96px + env(safe-area-inset-bottom))}
   .card{background:var(--card); border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); padding:14px; margin-bottom:12px}
   label{display:block; font-size:12px; color:var(--sub); margin:0 0 5px 2px; font-weight:600}
   input,select,textarea{
